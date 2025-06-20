@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="static/img/ammsemin.jpg" type="image/x-icon">
+  <title>树酱的群聊系统</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>树酱的群聊系统</h1>
+      <p class="subtitle"><a href="https://shu.pterid.top/">买点PT谢谢</a></p>
+    </header>
+
+    <div class="main-content">
+      <div class="setup-panel">
+        <h2 class="panel-title">系统设置</h2>
+
+        <div class="input-group">
+          <label for="contract-address">群聊合约地址</label>
+          <input type="text" id="contract-address" placeholder="输入合约地址">
+        </div>
+
+        <div class="input-group">
+          <label for="private-key">聊天室私钥</label>
+          <input type="password" id="private-key" placeholder="输入私钥">
+        </div>
+
+        <button id="connect-btn">连接钱包并加入群聊</button>
+
+        <div class="history-section">
+          <h3 class="panel-title">历史消息NFT</h3>
+          <div id="nft-list" class="nft-list">
+            <!-- NFT列表将通过JS动态生成 -->
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-panel">
+        <h2 class="panel-title">群聊消息</h2>
+
+        <div id="message-list" class="message-list">
+          <!-- 消息将通过JS动态生成 -->
+        </div>
+
+        <div class="input-area">
+          <input type="text" id="message-input" class="message-input" placeholder="输入消息内容...">
+          <button id="send-btn" class="send-button">发送</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="info-icon">🔗</span>
+        <span>状态: <span id="status-text">未连接</span></span>
+      </div>
+
+      <div class="status-item">
+        <span class="info-icon">👤</span>
+        <span>账户: <span id="account-address" class="short-address">未连接</span></span>
+      </div>
+
+      <div class="status-item">
+        <span class="info-icon">💬</span>
+        <span>消息数: <span id="message-count">0</span>/100</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/ethers.5.7.2umd.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+
+</html>
