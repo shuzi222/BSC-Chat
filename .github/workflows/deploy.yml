@@ -1,11 +1,9 @@
 name: BSCchat
-
 on:
   push:
     branches: [main] # 根据您的分支名称调整
 
 permissions:
-  contents: read
   pages: write
   id-token: write
 
@@ -20,14 +18,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      # 不需要构建步骤，因为我们是纯静态网站
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v4
         
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
-          path: . # 上传整个仓库
+          path: '.' # 上传整个仓库
 
   deploy:
     needs: build
@@ -38,4 +35,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
