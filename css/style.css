@@ -164,6 +164,7 @@ button:hover {
   background: #2980b9;
 }
 
+/* 他人消息样式 - 左侧蓝色 */
 .message {
   background: rgba(30, 40, 60, 0.7);
   padding: 15px;
@@ -174,6 +175,7 @@ button:hover {
   align-self: flex-start;
 }
 
+/* 我的消息样式 - 右侧绿色 */
 .message.me {
   align-self: flex-end;
   background: rgba(40, 80, 40, 0.7);
@@ -185,10 +187,31 @@ button:hover {
   justify-content: space-between;
   margin-bottom: 8px;
   font-size: 0.9rem;
+}
+
+/* 他人消息标题样式 - 蓝色 */
+.message .message-header {
   color: #3498db;
 }
 
+/* 我的消息标题样式 - 绿色 */
 .message.me .message-header {
+  color: #2ecc71;
+}
+
+/* 角色名称样式 */
+.message-role {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+/* 他人消息角色颜色 - 蓝色 */
+.message .message-role {
+  color: #3498db;
+}
+
+/* 我的消息角色颜色 - 绿色 */
+.message.me .message-role {
   color: #2ecc71;
 }
 
