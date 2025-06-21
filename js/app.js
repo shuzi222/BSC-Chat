@@ -4,6 +4,7 @@ let contractAddress = '';
 let nftAddress = '';
 let messagePollingInterval = null; // 轮询间隔ID
 let isProcessingMessage = false; // 消息处理状态标志
+let roleName = ''; // 角色名称变量
 
 // DOM元素
 const connectBtn = document.getElementById('connect-btn');
@@ -16,6 +17,7 @@ const accountAddress = document.getElementById('account-address');
 const messageCount = document.getElementById('message-count');
 const contractAddressInput = document.getElementById('contract-address');
 const privateKeyInput = document.getElementById('private-key');
+const roleNameInput = document.getElementById('role-name');
 
 // 合约ABI
 const groupChatABI = [
@@ -38,10 +40,15 @@ const nftABI = [
 document.addEventListener('DOMContentLoaded', () => {
   updateStatus('准备就绪');
 
-  // 尝试从本地存储加载合约地址
+  // 尝试从本地存储加载合约地址和角色名
   const savedAddress = localStorage.getItem('chatContractAddress');
   if (savedAddress) {
     contractAddressInput.value = savedAddress;
+  }
+
+  const savedRoleName = localStorage.getItem('chatRoleName');
+  if (savedRoleName) {
+    roleNameInput.value = savedRoleName;
   }
 
   // 连接钱包按钮事件
@@ -74,9 +81,10 @@ function showError(text) {
 async function connectWallet() {
   updateStatus('连接中...');
 
-  // 获取合约地址
+  // 获取合约地址和角色名
   contractAddress = contractAddressInput.value.trim();
   const privateKey = privateKeyInput.value.trim();
+  roleName = roleNameInput.value.trim() || '匿名'; // 默认值
 
   if (!contractAddress || !privateKey) {
     showError('请填写合约地址和私钥');
@@ -84,8 +92,9 @@ async function connectWallet() {
   }
 
   try {
-    // 保存合约地址到本地存储
+    // 保存合约地址和角色名到本地存储
     localStorage.setItem('chatContractAddress', contractAddress);
+    localStorage.setItem('chatRoleName', roleName);
 
     // 设置Provider（BSC测试网）
     provider = new ethers.providers.JsonRpcProvider('https://data-seed-prebsc-1-s1.binance.org:8545');
@@ -162,42 +171,37 @@ async function loadNewMessages(startIndex, endIndex) {
     for (let i = startIndex; i < endIndex; i++) {
       const [sender, content, timestamp] = await groupChatContract.getMessage(i);
 
+      // 解析消息内容
+      const parsed = parseMessage(content);
+      const isMe = parsed.role === roleName;
+
       // 检查是否已存在相同的消息
       const messageExists = Array.from(messageList.children).some(el => {
-        const header = el.querySelector('.message-header');
-        if (!header) return false;
-
-        const addrSpan = header.querySelector('span:first-child');
-        const timeSpan = header.querySelector('span:last-child');
+        const roleEl = el.querySelector('.message-role');
         const contentDiv = el.querySelector('.message-content');
 
-        return addrSpan && addrSpan.textContent.includes(sender.substring(0, 6)) &&
-          timeSpan && timeSpan.textContent === formatTime(timestamp) &&
-          contentDiv && contentDiv.textContent === content;
+        return roleEl && roleEl.textContent === parsed.role &&
+          contentDiv && contentDiv.textContent === parsed.content;
       });
 
       if (messageExists) {
-        console.log('消息已存在，跳过添加:', content);
+        console.log('消息已存在，跳过添加:', parsed.content);
         continue;
       }
 
       // 创建消息元素
       const messageEl = document.createElement('div');
-      messageEl.className = sender.toLowerCase() === account.toLowerCase() ?
-        'message me' : 'message';
+      messageEl.className = isMe ? 'message me' : 'message';
 
       // 格式化时间
       const timeString = formatTime(timestamp);
 
-      // 缩短地址
-      const shortAddress = `${sender.substring(0, 6)}...${sender.substring(38)}`;
-
       messageEl.innerHTML = `
         <div class="message-header">
-          <span>${shortAddress}</span>
+          <div class="message-role">${parsed.role}</div>
           <span>${timeString}</span>
         </div>
-        <div class="message-content">${content}</div>
+        <div class="message-content">${parsed.content}</div>
       `;
 
       messageList.appendChild(messageEl);
@@ -215,6 +219,25 @@ async function loadNewMessages(startIndex, endIndex) {
   }
 }
 
+// 消息解析函数
+function parseMessage(content) {
+  // 解析格式：(角色名)*消息内容
+  const match = content.match(/^\((.*?)\)\*(.*)$/);
+
+  if (match && match.length === 3) {
+    return {
+      role: match[1],  // 提取角色名称
+      content: match[2]
+    };
+  }
+
+  // 兼容旧格式消息
+  return {
+    role: '匿名',
+    content
+  };
+}
+
 // 格式化时间
 function formatTime(timestamp) {
   const date = new Date(timestamp * 1000);
@@ -223,6 +246,12 @@ function formatTime(timestamp) {
 
 // 发送消息
 async function sendMessage() {
+
+  /*
+  // 这里是消息发送的时候可以更新当前填写的名字（我是觉得这个功能不错，但是不行，必须给他们瞎改马甲加成本）
+  roleName = roleNameInput.value.trim() || '匿名';
+  localStorage.setItem('chatRoleName', roleName);
+  */
   const content = messageInput.value.trim();
   if (!content || isProcessingMessage) return;
 
@@ -230,8 +259,11 @@ async function sendMessage() {
   isProcessingMessage = true;
 
   try {
+    // 添加角色名称前缀
+    const fullContent = `(${roleName})*${content}`;
+
     // 发送消息到区块链
-    const tx = await groupChatContract.sendMessage(content);
+    const tx = await groupChatContract.sendMessage(fullContent);
     await tx.wait();
 
     // 清空输入框
@@ -254,11 +286,10 @@ async function sendMessage() {
     messageEl.className = 'message me'; // 发送者总是自己
 
     const timeString = formatTime(timestamp);
-    const shortAddress = `${account.substring(0, 6)}...${account.substring(38)}`;
 
     messageEl.innerHTML = `
       <div class="message-header">
-        <span>${shortAddress}</span>
+        <div class="message-role">${roleName}</div>
         <span>${timeString}</span>
       </div>
       <div class="message-content">${content}</div>
@@ -292,23 +323,23 @@ async function loadMessages() {
     for (let i = 0; i < count; i++) {
       const [sender, content, timestamp] = await groupChatContract.getMessage(i);
 
+      // 解析消息内容
+      const parsed = parseMessage(content);
+      const isMe = parsed.role === roleName;
+
       // 创建消息元素
       const messageEl = document.createElement('div');
-      messageEl.className = sender.toLowerCase() === account.toLowerCase() ?
-        'message me' : 'message';
+      messageEl.className = isMe ? 'message me' : 'message';
 
       // 格式化时间
       const timeString = formatTime(timestamp);
 
-      // 缩短地址
-      const shortAddress = `${sender.substring(0, 6)}...${sender.substring(38)}`;
-
       messageEl.innerHTML = `
         <div class="message-header">
-          <span>${shortAddress}</span>
+          <div class="message-role">${parsed.role}</div>
           <span>${timeString}</span>
         </div>
-        <div class="message-content">${content}</div>
+        <div class="message-content">${parsed.content}</div>
       `;
 
       messageList.appendChild(messageEl);
@@ -411,6 +442,12 @@ async function loadNFTMessages(tokenId) {
       const content = parts[1];
       const timestamp = parseInt(parts[2]);
 
+      // 解析消息内容
+
+      const parsed = parseMessage(content);
+      const isMe = parsed.role === roleName;
+      messageEl.className = isMe ? 'message me' : 'message';
+
       // 创建消息元素
       const messageEl = document.createElement('div');
       messageEl.className = 'message';
@@ -419,15 +456,12 @@ async function loadNFTMessages(tokenId) {
       const date = new Date(timestamp * 1000);
       const timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
-      // 缩短地址
-      const shortAddress = `${sender.substring(0, 6)}...${sender.substring(38)}`;
-
       messageEl.innerHTML = `
         <div class="message-header">
-          <span>${shortAddress}</span>
+          <div class="message-role">${parsed.role}</div>
           <span>${timeString}</span>
         </div>
-        <div class="message-content">${content}</div>
+        <div class="message-content">${parsed.content}</div>
       `;
 
       messageList.appendChild(messageEl);
